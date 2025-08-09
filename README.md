@@ -70,7 +70,7 @@ linkStyle range: 0-144
 ### Compound Connection Handling
 When Mermaid encounters connections with multiple targets using `&`, it creates individual connections:
 
-```mermaid
+```
 A --> B & C & D
 ```
 Creates 3 connections:
@@ -81,7 +81,7 @@ Creates 3 connections:
 ### Custom Edge ID Support
 Handles MermaidChart's custom edge ID syntax:
 
-```mermaid
+```
 Source L_CustomID@-- Label --> Target
 L_CustomID@{ animation: slow }
 ```
