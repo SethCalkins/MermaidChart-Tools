@@ -67,6 +67,14 @@ def extract_mermaid_connections(content):
         if any(line.startswith(pattern) for pattern in skip_patterns):
             continue
             
+        # Extract custom edge ID if present (pattern: ID@)
+        custom_edge_id = None
+        edge_id_match = re.search(r'\s+(L_[^\s@]+)@', line)
+        if edge_id_match:
+            custom_edge_id = edge_id_match.group(1)
+            # Remove the custom edge ID from the line for arrow parsing
+            line = re.sub(r'\s+L_[^\s@]+@', '', line)
+        
         # Check if line contains any arrow pattern
         found_arrow = None
         split_parts = None
@@ -74,22 +82,22 @@ def extract_mermaid_connections(content):
         # Only try regex patterns for labeled arrows if line doesn't contain compound connections (&)
         if '&' not in line:
             labeled_patterns = [
-                (r'(.*?)\s*<--\s+[^-]+\s+-->\s*(.*)', '<-- label -->'),
-                (r'(.*?)\s*x--\s+[^-]+\s+--x\s*(.*)', 'x-- label --x'),
-                (r'(.*?)\s*o--\s+[^-]+\s+--o\s*(.*)', 'o-- label --o'),
-                (r'(.*?)\s*--\s+[^-]+\s+---\s*(.*)', '-- label ---'),
-                (r'(.*?)\s*--\s+[^-]+\s+-->\s*(.*)', '-- label -->'),
-                (r'(.*?)\s*--\s+[^-]+\s+--x\s*(.*)', '-- label --x'),
-                (r'(.*?)\s*--\s+[^-]+\s+--o\s*(.*)', '-- label --o'),
-                (r'(.*?)\s*-\.\s+[^-]+\s+\.->\s*(.*)', '-. label .->'),
-                (r'(.*?)\s*==\s+[^=]+\s+==>\s*(.*)', '== label ==>'),
+                (r'(.*?)(\s*<--\s+[^-]+\s+-->\s*)(.*)', '<-- label -->'),
+                (r'(.*?)(\s*x--\s+[^-]+\s+--x\s*)(.*)', 'x-- label --x'),
+                (r'(.*?)(\s*o--\s+[^-]+\s+--o\s*)(.*)', 'o-- label --o'),
+                (r'(.*?)(\s*--\s+[^-]+\s+---\s*)(.*)', '-- label ---'),
+                (r'(.*?)(\s*--\s+[^-]+\s+-->\s*)(.*)', '-- label -->'),
+                (r'(.*?)(\s*--\s+[^-]+\s+--x\s*)(.*)', '-- label --x'),
+                (r'(.*?)(\s*--\s+[^-]+\s+--o\s*)(.*)', '-- label --o'),
+                (r'(.*?)(\s*-\.\s+[^-]+\s+\.->\s*)(.*)', '-. label .->'),
+                (r'(.*?)(\s*==\s+[^=]+\s+==>\s*)(.*)', '== label ==>'),
             ]
             
             for pattern, arrow_desc in labeled_patterns:
                 match = re.match(pattern, line)
                 if match:
-                    split_parts = [match.group(1).strip(), match.group(2).strip()]
-                    found_arrow = arrow_desc
+                    split_parts = [match.group(1).strip(), match.group(3).strip()]
+                    found_arrow = match.group(2).strip()  # The actual arrow text
                     break
         
         # If no labeled pattern matched, try literal arrow patterns
@@ -120,11 +128,18 @@ def extract_mermaid_connections(content):
             
             # Create individual connection for each target
             for target in targets:
-                individual_connection = f"{source_part} {found_arrow} {target}"
+                if custom_edge_id:
+                    individual_connection = f"{source_part} {custom_edge_id}@{found_arrow} {target}"
+                else:
+                    individual_connection = f"{source_part} {found_arrow} {target}"
                 connections.append(individual_connection)
         else:
-            # Single connection
-            connections.append(line)
+            # Single connection - reconstruct with custom edge ID if present
+            if custom_edge_id:
+                reconstructed_connection = f"{source_part} {custom_edge_id}@{found_arrow} {target_part}"
+            else:
+                reconstructed_connection = f"{source_part} {found_arrow} {target_part}"
+            connections.append(reconstructed_connection)
     
     return connections
 
@@ -149,7 +164,7 @@ for match in re.finditer(linkstyle_pattern, mermaid_code):
 
 # --- Extract animation metadata ---
 animation_pattern = re.compile(
-    r'^(L_[^\s@]+)@\{\s*animation:\s*([a-z]+)\s*\}',
+    r'^\s*(L_[^\s@]+)@\{\s*animation:\s*([a-z]+)\s*\}',
     re.MULTILINE
 )
 
@@ -169,9 +184,11 @@ for idx, edge in enumerate(edges):
         "animation": None
     }
     # Try to match ID from edge if it has one
-    id_match = re.search(r'(L_[^@\s]+)', edge)
-    if id_match and id_match.group(1) in animations:
-        data["animation"] = animations[id_match.group(1)]
+    id_match = re.search(r'(L_[^@\s]+)@', edge)
+    if id_match:
+        edge_id = id_match.group(1)
+        if edge_id in animations:
+            data["animation"] = animations[edge_id]
     edge_data.append(data)
 
 # --- Print connection analysis ---
