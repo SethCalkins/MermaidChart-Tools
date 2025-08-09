@@ -21,13 +21,8 @@ wheels/
 *.egg
 MANIFEST
 
-# Sensitive/private diagrams
-diagram.mmd
-
-# Test files
-test_*.mmd
-*_test.mmd
-temp*.mmd
+# All Mermaid diagram files (potentially sensitive)
+*.mmd
 
 # IDE
 .vscode/
