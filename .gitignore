@@ -24,6 +24,10 @@ MANIFEST
 # All Mermaid diagram files (potentially sensitive)
 *.mmd
 
+# Claude Code configuration and files
+.claude/
+CLAUDE.md
+
 # IDE
 .vscode/
 .idea/
