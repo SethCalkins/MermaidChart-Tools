@@ -21,6 +21,9 @@ wheels/
 *.egg
 MANIFEST
 
+# Sensitive/private diagrams
+diagram.mmd
+
 # Test files
 test_*.mmd
 *_test.mmd
